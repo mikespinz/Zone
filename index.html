@@ -20,7 +20,7 @@ frame.addEventListener('load',()=>{
     if(!doc||doc.getElementById('ccLivePatch'))return;
     const script=doc.createElement('script');
     script.id='ccLivePatch';
-    script.src='cc-runtime-patch.js?v=20260829-1';
+    script.src='cc-runtime-patch.js?v=20260829-2';
     (doc.head||doc.body||doc.documentElement).appendChild(script);
   }catch(err){console.error('CREATIVE CONTROL live patch could not load',err)}
 });
