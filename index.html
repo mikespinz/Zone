@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#151515">
+<title>CREATIVE CONTROL — Owner Mode 2.3.1</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="bootSplash" class="bootSplash"><div class="bootLogo"><span>CC</span></div><div class="bootCopy"><b>CREATIVE CONTROL</b><span>LOADING YOUR WRESTLING WORLD</span><i></i></div></div>
+<div id="titleScreen" class="titleScreen" hidden></div>
+<audio id="titleTheme" src="assets/creative-control-title-theme.mp3" preload="auto" loop></audio>
+<div id="newGameWizard" class="wizardBackdrop" hidden><div class="wizardCard" id="wizardCard"></div></div>
+<div id="appShell" hidden>
+  <header class="topbar">
+    <button class="mobileMenu" id="mobileMenu" aria-label="Toggle menu">☰</button>
+    <div class="brand">
+      <div class="brandMark">CC</div>
+      <div><strong>CREATIVE CONTROL</strong><span>OWNER MODE · 2.3.1</span></div>
+    </div>
+    <div class="topControls">
+      <button class="quickFindBtn" id="quickFindBtn" title="Find a wrestler">⌕ <span>FIND</span></button>
+      <button class="quickFindBtn" id="gameMusicToggle" title="Toggle game music" aria-pressed="true"><span>♫</span> MUSIC ON</button>
+      <label class="promoPicker"><span>Owned Promotion</span><select id="promoSelect"></select></label>
+      <div class="dateChip"><span id="dayName">MONDAY</span><strong id="gameDate">JAN 26, 2004</strong></div>
+      <button class="continueBtn" id="advanceDay">ADVANCE DAY <span>›</span></button>
+    </div>
+  </header>
+
+  <aside class="sidebar" id="sidebar">
+    <nav id="nav">
+      <div class="navGroup"><small>PLAY</small>
+        <button data-view="dashboard" class="active"><span>⌂</span> Control Room</button>
+        <button data-view="booking"><span>▤</span> Book Show</button>
+        <button data-view="creative"><span>◇</span> Creative Control</button>
+        <button data-view="creativeTeam"><span>✦</span> Creative Team</button>
+        <button data-view="buzz"><span>◌</span> Media & Fans</button>
+        <button data-view="inbox"><span>✉</span> Inbox <i id="inboxBadge" class="navBadge" hidden>0</i></button>
+      </div>
+      <div class="navGroup"><small>TALENT</small>
+        <button data-view="roster"><span>◉</span> Roster</button>
+        <button data-view="contracts"><span>⌁</span> Contracts</button>
+        <button data-view="storylines"><span>⚡</span> Feuds & Storylines</button>
+        <button data-view="teams"><span>⬡</span> Teams & Factions</button>
+        <button data-view="titles"><span>★</span> Championships</button>
+        <button data-view="talent"><span>△</span> Development & Staff</button>
+        <button data-view="discipline"><span>!</span> Policies & Discipline</button>
+      </div>
+      <div class="navGroup"><small>COMPANY</small>
+        <button data-view="television"><span>▣</span> Television</button>
+        <button data-view="finance"><span>$</span> Finances & Sponsors</button>
+        <button data-view="company"><span>▲</span> Company Progression</button>
+        <button data-view="calendar"><span>▦</span> Calendar</button>
+        <button data-view="world"><span>◎</span> Wrestling World</button>
+        <button data-view="history"><span>◈</span> History & Awards</button>
+      </div>
+      <div class="navGroup"><small>SYSTEM</small>
+        <button data-view="scenarios"><span>▱</span> Game Data</button>
+        <button data-view="editor"><span>✎</span> Database Editor</button>
+        <button data-view="settings"><span>⚙</span> Settings & Saves</button>
+      </div>
+    </nav>
+    <div class="sideFooter">
+      <div class="sourceBadge"><i></i><span><b id="scenarioBadge">GAME UNIVERSE</b><small id="recordCount">Loading records…</small></span></div>
+      <div class="saveActions"><button id="quickSave" class="ghost">Quick Save</button><button id="openSaveManager" class="ghost">Save Manager</button></div>
+      <input id="importFile" type="file" accept="application/json,.json" hidden>
+      <button id="resetSave" class="ghostDanger">Reset Career Save</button>
+    </div>
+  </aside>
+
+  <main id="main"></main>
+</div>
+
+<div class="modalBackdrop" id="modalBackdrop" hidden>
+  <div class="modal" id="modal"></div>
+</div>
+<div id="toastStack"></div>
+
+<script src="jszip.min.js"></script>
+<script src="universe.js"></script>
+<script src="builtin_pics.js"></script>
+<script>
+(async()=>{
+  try{
+    const res=await fetch('data.zip',{cache:'force-cache'});
+    if(!res.ok) throw new Error('Could not load the January 2026 universe data.');
+    const zip=await JSZip.loadAsync(await res.arrayBuffer());
+    const datNames=['wrestler.dat','staff.dat','teams.dat','stables.dat','belt.dat','event.dat','network.dat','promos.dat','sponsor.dat','tv.dat','relate.dat','alter.dat','gameinfo.dat','news.dat'];
+    const datMap=new Map();
+    for(const [path,entry] of Object.entries(zip.files)){
+      if(entry.dir) continue;
+      const name=path.replace(/\\/g,'/').split('/').pop().toLowerCase();
+      if(datNames.includes(name)) datMap.set(name,new Uint8Array(await entry.async('arraybuffer')));
+    }
+    const base={meta:{},wrestlers:[],promotions:[],teams:[],stables:[],belts:[],events:[],networks:[],tv:[],relationships:[],staff:[],sponsors:[],alterEgos:[],guides:[],legacyFiles:[]};
+    const parsed=window.CCScenario.parseDatMap(datMap,base).data;
+    parsed.meta={...(parsed.meta||{}),title:'January 2026 Universe',source:'CREATIVE CONTROL Online',version:'2.3.1',originalFileCount:datMap.size,startDate:'2026-01-01',scenarioKey:'jan-2026-update',picturePackIncluded:false};
+    window.CC_JAN2026_DATA=parsed;
+    window.CC_DATA=parsed;
+    const script=document.createElement('script');
+    script.src='app.js';
+    script.onerror=()=>{throw new Error('Could not load the game engine.')};
+    document.body.appendChild(script);
+  }catch(err){
+    console.error(err);
+    const splash=document.getElementById('bootSplash');
+    if(splash) splash.innerHTML='<div class="bootCopy"><b>CREATIVE CONTROL</b><span>STARTUP ERROR</span><p style="max-width:560px">'+String(err.message||err)+'</p></div>';
+  }
+})();
+</script>
+</body>
+</html>
