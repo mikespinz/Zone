@@ -5,6 +5,19 @@
 
   const VERSION='2.3.1';
   const SOURCE_ROLE_NORMALIZE=new Map([[25,7],[50,6]]);
+  const fixVersion=s=>String(s)
+    .replaceAll('Creative Control 2.2',`Creative Control ${VERSION}`)
+    .replaceAll('CREATIVE CONTROL 2.2',`CREATIVE CONTROL ${VERSION}`);
+
+  function installSaveSanitizer(){
+    try{
+      if(window.Storage && !Storage.prototype.__ccTextFix){
+        const nativeSet=Storage.prototype.setItem;
+        Storage.prototype.setItem=function(key,value){return nativeSet.call(this,key,typeof value==='string'?fixVersion(value):value)};
+        Object.defineProperty(Storage.prototype,'__ccTextFix',{value:true,configurable:true});
+      }
+    }catch{}
+  }
 
   function normalizeSourceRoles(){
     const data=window.CC_DATA;
@@ -30,9 +43,7 @@
       if(!key) continue;
       const raw=localStorage.getItem(key);
       if(!raw || (!raw.includes('Creative Control 2.2') && !raw.includes('CREATIVE CONTROL 2.2'))) continue;
-      const next=raw
-        .replaceAll('Creative Control 2.2',`Creative Control ${VERSION}`)
-        .replaceAll('CREATIVE CONTROL 2.2',`CREATIVE CONTROL ${VERSION}`);
+      const next=fixVersion(raw);
       if(next!==raw){try{localStorage.setItem(key,next);changed++}catch{}}
     }
     return changed;
@@ -46,9 +57,7 @@
       const n=walker.currentNode;
       const text=n.nodeValue||'';
       if(!text) continue;
-      let next=text;
-      next=next.replaceAll('Creative Control 2.2',`Creative Control ${VERSION}`)
-               .replaceAll('CREATIVE CONTROL 2.2',`CREATIVE CONTROL ${VERSION}`);
+      let next=fixVersion(text);
       next=next.replace(/\bundefined\s*([•·])/g,'Unassigned $1');
       if(next!==text){n.nodeValue=next;changed++}
       if(/\b(?:undefined|NaN)\b|�/.test(next)) bad.push(next.trim().slice(0,180));
@@ -67,12 +76,12 @@
 
   function audit(){
     const data=window.CC_DATA||{};
-    const text=(document.body?.innerText||'');
+    const text=document.body?.innerText||'';
     const bad=[];
     if(/\bundefined\b/.test(text)) bad.push('visible undefined');
     if(/\bNaN\b/.test(text)) bad.push('visible NaN');
     if(text.includes('�')) bad.push('replacement character');
-    const ids=(data.wrestlers||[]).map(w=>w.id), duplicateIds=ids.length-new Set(ids).size;
+    const ids=(data.wrestlers||[]).map(w=>w.id),duplicateIds=ids.length-new Set(ids).size;
     const promoIds=new Set((data.promotions||[]).map(p=>+p.id));
     const invalidEmployers=(data.wrestlers||[]).reduce((n,w)=>n+(w.employers||[]).filter(Boolean).filter(id=>!promoIds.has(+id)).length,0);
     const unresolvedPositions=(data.wrestlers||[]).reduce((n,w)=>n+(w.positions||[]).filter(x=>![0,1,2,3,4,5,6,7].includes(+x)).length,0);
@@ -82,6 +91,7 @@
   }
 
   function apply(){
+    installSaveSanitizer();
     const roles=normalizeSourceRoles();
     const saves=fixSavedVersionText();
     refreshCurrentView();
@@ -97,6 +107,7 @@
     },120);
   }
 
+  installSaveSanitizer();
   const observer=new MutationObserver(()=>cleanRenderedText());
   observer.observe(document.documentElement,{subtree:true,childList:true,characterData:true});
   let tries=0;
