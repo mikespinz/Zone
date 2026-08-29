@@ -11,6 +11,19 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#101010;col
 </head>
 <body>
 <div class="status"><div><h1>CREATIVE CONTROL</h1><p><b>GitHub Edition</b></p><p>Loading the locally hosted game…</p></div></div>
-<iframe src="game.html" title="CREATIVE CONTROL" allow="autoplay; fullscreen"></iframe>
+<iframe id="gameFrame" src="game.html" title="CREATIVE CONTROL" allow="autoplay; fullscreen"></iframe>
+<script>
+const frame=document.getElementById('gameFrame');
+frame.addEventListener('load',()=>{
+  try{
+    const doc=frame.contentDocument;
+    if(!doc||doc.getElementById('ccLivePatch'))return;
+    const script=doc.createElement('script');
+    script.id='ccLivePatch';
+    script.src='cc-runtime-patch.js?v=20260829-1';
+    (doc.head||doc.body||doc.documentElement).appendChild(script);
+  }catch(err){console.error('CREATIVE CONTROL live patch could not load',err)}
+});
+</script>
 </body>
 </html>
